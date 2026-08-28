@@ -1,6 +1,6 @@
 #if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)
 import Foundation
-import StudioDeviceWire
+import SpringMotionDeviceWire
 import UIKit
 
 /// Runs one take: starts the screen capture and the touch tap together, stops
@@ -25,9 +25,9 @@ final class TakeRecorder {
         self.store = store
     }
 
-    func start(options: StudioDeviceRequest.RecordOptions) async throws -> String {
+    func start(options: SpringMotionRequest.RecordOptions) async throws -> String {
         guard !isRecording else {
-            throw StudioDeviceResponse.Failure(.alreadyRecording,
+            throw SpringMotionResponse.Failure(.alreadyRecording,
                                                "This device is already recording.")
         }
         let id = try store.createTake()
@@ -63,9 +63,9 @@ final class TakeRecorder {
         return id
     }
 
-    func stop() async throws -> StudioDeviceResponse.TakeSummary {
+    func stop() async throws -> SpringMotionResponse.TakeSummary {
         guard isRecording, let capture, let id = takeID else {
-            throw StudioDeviceResponse.Failure(.notRecording, "No recording is running.")
+            throw SpringMotionResponse.Failure(.notRecording, "No recording is running.")
         }
         isRecording = false
         deadline?.cancel()
@@ -102,7 +102,7 @@ final class TakeRecorder {
         self.capture = nil
         self.takeID = nil
 
-        return StudioDeviceResponse.TakeSummary(
+        return SpringMotionResponse.TakeSummary(
             id: id,
             duration: take.duration,
             videoBytes: store.videoBytes(for: id),
@@ -114,8 +114,8 @@ final class TakeRecorder {
     /// Map capture errors onto wire failures, keeping the distinction between
     /// "the user said no" and "the system couldn't" — they need different
     /// advice, and collapsing them sends the developer to the wrong place.
-    private static func failure(from error: Error) -> StudioDeviceResponse.Failure {
-        if let failure = error as? StudioDeviceResponse.Failure { return failure }
+    private static func failure(from error: Error) -> SpringMotionResponse.Failure {
+        if let failure = error as? SpringMotionResponse.Failure { return failure }
         switch error as? ScreenCapture.CaptureError {
         case .denied:
             return .init(.captureDenied,

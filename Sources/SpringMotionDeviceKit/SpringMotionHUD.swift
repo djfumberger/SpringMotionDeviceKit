@@ -3,14 +3,14 @@ import SwiftUI
 
 /// Release stub — same surface, no window, no recorder.
 @MainActor
-public enum StudioDeviceHUD {
+public enum SpringMotionHUD {
     public static func show() {}
     public static func hide() {}
 }
 #endif
 
 #if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)
-import StudioDeviceWire
+import SpringMotionDeviceWire
 import SwiftUI
 import UIKit
 
@@ -25,12 +25,12 @@ import UIKit
 /// you are recording is exactly the thing you don't want in the frame — it hides
 /// itself while recording, but the choice to have it at all is the host's.
 @MainActor
-public enum StudioDeviceHUD {
+public enum SpringMotionHUD {
     private static var window: UIWindow?
 
-    /// Show the floating control. Call after `StudioDevice.enable()`.
+    /// Show the floating control. Call after `SpringMotion.enable()`.
     public static func show() {
-        guard StudioDevice.isEnabled, window == nil else { return }
+        guard SpringMotion.isEnabled, window == nil else { return }
         guard let scene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first(where: { $0.activationState == .foregroundActive })
@@ -68,7 +68,7 @@ public enum StudioDeviceHUD {
 
 private struct HUDView: View {
     @State private var isRecording = false
-    @State private var lastTake: StudioDevice.TakeHandle?
+    @State private var lastTake: SpringMotion.TakeHandle?
     @State private var error: String?
     @State private var isBusy = false
     /// Dragged out of the way — the button must never be stuck over the part of
@@ -128,7 +128,7 @@ private struct HUDView: View {
         .accessibilityLabel(isRecording ? "Stop Studio recording" : "Start Studio recording")
     }
 
-    private func takeSummary(_ take: StudioDevice.TakeHandle) -> some View {
+    private func takeSummary(_ take: SpringMotion.TakeHandle) -> some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(String(format: "%.1fs · %d strokes", take.duration, take.strokeCount))
             // The number that says whether multi-touch capture actually worked.
@@ -150,14 +150,14 @@ private struct HUDView: View {
         error = nil
         do {
             if isRecording {
-                lastTake = try await StudioDevice.stopRecording()
+                lastTake = try await SpringMotion.stopRecording()
                 isRecording = false
             } else {
                 lastTake = nil
-                _ = try await StudioDevice.startRecording()
+                _ = try await SpringMotion.startRecording()
                 isRecording = true
             }
-        } catch let failure as StudioDeviceResponse.Failure {
+        } catch let failure as SpringMotionResponse.Failure {
             error = failure.message
             isRecording = false
         } catch {
@@ -166,7 +166,7 @@ private struct HUDView: View {
         }
     }
 
-    private func share(_ take: StudioDevice.TakeHandle) {
+    private func share(_ take: SpringMotion.TakeHandle) {
         let items: [Any] = [take.videoURL, take.touchesURL]
         let sheet = UIActivityViewController(activityItems: items,
                                              applicationActivities: nil)

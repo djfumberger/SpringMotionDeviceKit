@@ -1,4 +1,4 @@
-# StudioDeviceKit
+# SpringMotionDeviceKit
 
 Capture a real iOS device's screen **and its multi-touch input** for Promo
 Studio. Debug builds only.
@@ -7,25 +7,23 @@ The simulator can't do this — no real multi-touch, and its video and the host'
 input log run on separate clocks. Here one process owns both, so a pinch is
 recordable and the log lands on the video frame-exactly.
 
-Design and phasing: [`../DEVICEKIT.md`](../DEVICEKIT.md).
-
 ## Install
 
 ```swift
 // Package.swift
-.package(path: "../promo-studio-pro/StudioDeviceKit")
+.package(url: "https://github.com/djfumberger/SpringMotionDeviceKit", from: "0.1.0")
 // target dependency:
-.product(name: "StudioDeviceKit", package: "StudioDeviceKit")
+.product(name: "SpringMotionDeviceKit", package: "SpringMotionDeviceKit")
 ```
 
 ```swift
 // SwiftUI
-WindowGroup { ContentView().studioCapture() }
+WindowGroup { ContentView().springMotionCapture() }
 
 // UIKit
 func application(_: UIApplication,
                  didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    StudioDevice.enable()
+    SpringMotion.enable()
     return true
 }
 ```
@@ -35,25 +33,25 @@ without them iOS blocks the connection with no error:
 
 ```xml
 <key>NSLocalNetworkUsageDescription</key>
-<string>Connects to Promo Studio on your Mac to record demo footage.</string>
+<string>Connects to Spring Motion on your Mac to record demo footage.</string>
 <key>NSBonjourServices</key>
-<array><string>_promostudio._tcp</string></array>
+<array><string>_springmotion._tcp</string></array>
 ```
 
-`StudioDevice.enable()` prints a specific warning at launch if either is
+`SpringMotion.enable()` prints a specific warning at launch if either is
 missing, and `hello` reports them to Studio so the device doesn't just silently
 fail to appear.
 
 Every implementation file is wrapped in
 `#if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)`, so release builds carry no
-screen recorder, no listener and no `sendEvent` swizzle. `StudioDevice` and
-`StudioDeviceHUD` keep their signatures as stubs, so your call sites compile in
+screen recorder, no listener and no `sendEvent` swizzle. `SpringMotion` and
+`SpringMotionHUD` keep their signatures as stubs, so your call sites compile in
 every configuration without `#if` of your own.
 
 Confirm it on your own release build:
 
 ```sh
-strings YourApp.app/YourApp | grep -c studioDeviceKit_sendEvent   # → 0
+strings YourApp.app/YourApp | grep -c springMotionDeviceKit_sendEvent   # → 0
 otool -L YourApp.app/YourApp | grep -ci replaykit                 # → 0
 ```
 
@@ -66,20 +64,20 @@ Networking is phase 2. Until then — and afterwards, for takes shot away from t
 desk — drive it directly:
 
 ```swift
-StudioDevice.enable()
-StudioDeviceHUD.show()      // floating, draggable record button
+SpringMotion.enable()
+SpringMotionHUD.show()      // floating, draggable record button
 ```
 
 Or in code:
 
 ```swift
-try await StudioDevice.startRecording()
-let take = try await StudioDevice.stopRecording()
+try await SpringMotion.startRecording()
+let take = try await SpringMotion.stopRecording()
 // take.videoURL, take.touchesURL, take.maximumConcurrentStrokes
 ```
 
 The HUD's **Share Take** hands both files to a share sheet — AirDrop them to the
-Mac and inspect them by hand. `StudioDevice.pendingTakes` lists anything not yet
+Mac and inspect them by hand. `SpringMotion.pendingTakes` lists anything not yet
 collected.
 
 ## Phase 0: what to verify on real hardware
@@ -113,15 +111,15 @@ architecture.
 
 | file | what it owns |
 |---|---|
-| `StudioDeviceWire/TouchTake.swift` | the wire format — strokes, samples, anchors |
-| `StudioDeviceWire/Framing.swift` | length-prefixed messages + blob bodies |
-| `StudioDeviceWire/Protocol.swift` | request/response envelopes, TXT keys |
-| `StudioDeviceKit/TouchTap.swift` | the `UIWindow.sendEvent` hook |
-| `StudioDeviceKit/ScreenCapture.swift` | ReplayKit → `AVAssetWriter` |
-| `StudioDeviceKit/TakeRecorder.swift` | one take: start both, stop both, assemble |
-| `StudioDeviceKit/TakeStore.swift` | takes on disk awaiting collection |
-| `StudioDeviceKit/StudioDevice.swift` | the public surface |
-| `StudioDeviceKit/StudioDeviceHUD.swift` | the no-Mac record button |
+| `SpringMotionDeviceWire/TouchTake.swift` | the wire format — strokes, samples, anchors |
+| `SpringMotionDeviceWire/Framing.swift` | length-prefixed messages + blob bodies |
+| `SpringMotionDeviceWire/Protocol.swift` | request/response envelopes, TXT keys |
+| `SpringMotionDeviceKit/TouchTap.swift` | the `UIWindow.sendEvent` hook |
+| `SpringMotionDeviceKit/ScreenCapture.swift` | ReplayKit → `AVAssetWriter` |
+| `SpringMotionDeviceKit/TakeRecorder.swift` | one take: start both, stop both, assemble |
+| `SpringMotionDeviceKit/TakeStore.swift` | takes on disk awaiting collection |
+| `SpringMotionDeviceKit/SpringMotion.swift` | the public surface |
+| `SpringMotionDeviceKit/SpringMotionHUD.swift` | the no-Mac record button |
 
-Studio links `StudioDeviceWire` only, so the format has one definition rather
+Studio links `SpringMotionDeviceWire` only, so the format has one definition rather
 than two copies drifting apart.

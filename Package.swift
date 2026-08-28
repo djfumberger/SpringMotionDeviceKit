@@ -6,29 +6,29 @@ import PackageDescription
 //
 // Two products, because the two ends of the wire need different things:
 //
-//   StudioDeviceWire — the format itself. iOS AND macOS, pure Codable, no UIKit.
+//   SpringMotionDeviceWire — the format itself. iOS AND macOS, pure Codable, no UIKit.
 //                      Studio links this, so there is ONE definition of the wire
 //                      format rather than two copies drifting apart.
-//   StudioDeviceKit  — the SDK proper: capture, Bonjour, control server. iOS
+//   SpringMotionDeviceKit  — the SDK proper: capture, Bonjour, control server. iOS
 //                      only; every file is `#if os(iOS)` so the package still
 //                      builds (to nothing) when Studio pulls in the wire target.
 let package = Package(
-    name: "StudioDeviceKit",
+    name: "SpringMotionDeviceKit",
     platforms: [.iOS(.v17), .macOS(.v15)],
     products: [
-        .library(name: "StudioDeviceWire", targets: ["StudioDeviceWire"]),
-        .library(name: "StudioDeviceKit", targets: ["StudioDeviceKit"]),
+        .library(name: "SpringMotionDeviceWire", targets: ["SpringMotionDeviceWire"]),
+        .library(name: "SpringMotionDeviceKit", targets: ["SpringMotionDeviceKit"]),
     ],
     targets: [
-        .target(name: "StudioDeviceWire", swiftSettings: [.swiftLanguageMode(.v6)]),
+        .target(name: "SpringMotionDeviceWire", swiftSettings: [.swiftLanguageMode(.v6)]),
         .target(
-            name: "StudioDeviceKit",
-            dependencies: ["StudioDeviceWire"],
+            name: "SpringMotionDeviceKit",
+            dependencies: ["SpringMotionDeviceWire"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         .testTarget(
-            name: "StudioDeviceWireTests",
-            dependencies: ["StudioDeviceWire"],
+            name: "SpringMotionDeviceWireTests",
+            dependencies: ["SpringMotionDeviceWire"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
     ]

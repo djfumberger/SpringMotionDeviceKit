@@ -1,6 +1,6 @@
 #if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)
 import Foundation
-import StudioDeviceWire
+import SpringMotionDeviceWire
 
 /// Takes on disk, waiting to be collected.
 ///
@@ -15,7 +15,7 @@ struct TakeStore: Sendable {
     init(root: URL? = nil) {
         self.root = root ?? FileManager.default
             .urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("StudioDeviceKit/Takes", isDirectory: true)
+            .appendingPathComponent("SpringMotionDeviceKit/Takes", isDirectory: true)
     }
 
     func directory(for id: String) -> URL {
@@ -69,7 +69,7 @@ struct TakeStore: Sendable {
     }
 
     /// Drop everything — used when a take fails to assemble, and offered to the
-    /// developer through `StudioDevice.clearTakes()`.
+    /// developer through `SpringMotion.clearTakes()`.
     func deleteAll() {
         for id in pendingIDs { delete(id) }
     }

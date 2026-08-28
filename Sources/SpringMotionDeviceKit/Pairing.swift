@@ -1,6 +1,6 @@
 #if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)
 import Foundation
-import StudioDeviceWire
+import SpringMotionDeviceWire
 import SwiftUI
 import UIKit
 
@@ -51,7 +51,7 @@ final class PairingStore {
             .joined()
         pending = PendingCode(code: code,
                               expires: Date().timeIntervalSince1970
-                                  + StudioDeviceProtocol.pairingCodeLifetime,
+                                  + SpringMotionProtocol.pairingCodeLifetime,
                               attempts: 0)
         PairingCodeWindow.show(code: code)
     }
@@ -59,13 +59,13 @@ final class PairingStore {
     /// Redeem a code for a lasting token, or say precisely why not.
     func redeem(_ code: String) throws -> String {
         guard var pending else {
-            throw StudioDeviceResponse.Failure(
+            throw SpringMotionResponse.Failure(
                 .badPairingCode, "No pairing code is showing on the device.")
         }
         guard Date().timeIntervalSince1970 < pending.expires else {
             self.pending = nil
             PairingCodeWindow.hide()
-            throw StudioDeviceResponse.Failure(
+            throw SpringMotionResponse.Failure(
                 .badPairingCode, "That pairing code expired — try connecting again.")
         }
 
@@ -75,13 +75,13 @@ final class PairingStore {
             if pending.attempts >= Self.maximumAttempts {
                 self.pending = nil
                 PairingCodeWindow.hide()
-                throw StudioDeviceResponse.Failure(
+                throw SpringMotionResponse.Failure(
                     .badPairingCode,
                     "Too many incorrect codes — connect again for a new one.")
             }
             self.pending = pending
             let left = Self.maximumAttempts - pending.attempts
-            throw StudioDeviceResponse.Failure(
+            throw SpringMotionResponse.Failure(
                 .badPairingCode,
                 "Incorrect code — \(left) attempt\(left == 1 ? "" : "s") left.")
         }
@@ -99,7 +99,7 @@ final class PairingStore {
         PairingCodeWindow.hide()
     }
 
-    /// Forget every paired Mac — offered through `StudioDevice.unpairAll()`
+    /// Forget every paired Mac — offered through `SpringMotion.unpairAll()`
     /// for when a device changes hands.
     func revokeAll() {
         tokens.removeAll()
@@ -142,7 +142,7 @@ private struct PairingCodeView: View {
         ZStack {
             Color.black.opacity(0.75).ignoresSafeArea()
             VStack(spacing: 16) {
-                Text("Pair with Promo Studio")
+                Text("Pair with Spring Motion")
                     .font(.headline)
                     .foregroundStyle(.white.opacity(0.8))
                 Text(spaced)

@@ -1,14 +1,14 @@
 import Foundation
 
 /// Names and constants both ends agree on.
-public enum StudioDeviceProtocol {
+public enum SpringMotionProtocol {
     /// SDK / protocol version. Advertised in the TXT record and checked by
     /// `hello`, so a mismatch is reported before a shoot rather than after.
     public static let version = "1"
 
     /// The Bonjour service type. Host apps must list this in their Info.plist
     /// under `NSBonjourServices` or iOS silently refuses to advertise.
-    public static let serviceType = "_promostudio._tcp"
+    public static let serviceType = "_springmotion._tcp"
 
     /// TXT record keys — kept to one or two characters because a TXT record is
     /// a small budget and this is machine-read, not human-read.
@@ -33,7 +33,7 @@ public enum TakePart: String, Codable, Sendable {
 }
 
 /// Mac → device.
-public enum StudioDeviceRequest: Codable, Sendable {
+public enum SpringMotionRequest: Codable, Sendable {
     /// Identify, and check whether this peer is already trusted. Always the
     /// first message on a connection.
     case hello(token: String?, client: String)
@@ -68,7 +68,7 @@ public enum StudioDeviceRequest: Codable, Sendable {
 /// `blob` is the one case with a tail: the announcement is a framed JSON
 /// message, and exactly `bytes` raw bytes follow it on the connection before
 /// normal framing resumes. Nothing else may be interleaved in between.
-public enum StudioDeviceResponse: Codable, Sendable {
+public enum SpringMotionResponse: Codable, Sendable {
     case hello(HelloInfo)
     /// This peer is not trusted yet; the device is now showing `codeLength`
     /// digits on its screen for the user to read across.
@@ -94,7 +94,7 @@ public enum StudioDeviceResponse: Codable, Sendable {
         public var configurationWarnings: [String]
 
         public init(device: TouchTake.DeviceIdentity, screen: TouchTake.Screen,
-                    protocolVersion: String = StudioDeviceProtocol.version,
+                    protocolVersion: String = SpringMotionProtocol.version,
                     isRecording: Bool = false,
                     pendingTakeIDs: [String] = [],
                     configurationWarnings: [String] = []) {
@@ -169,14 +169,14 @@ public enum StudioDeviceResponse: Codable, Sendable {
     }
 }
 
-public extension StudioDeviceRequest {
+public extension SpringMotionRequest {
     func encoded() throws -> Data { try JSONEncoder().encode(self) }
     static func decode(_ data: Data) throws -> Self {
         try JSONDecoder().decode(Self.self, from: data)
     }
 }
 
-public extension StudioDeviceResponse {
+public extension SpringMotionResponse {
     func encoded() throws -> Data { try JSONEncoder().encode(self) }
     static func decode(_ data: Data) throws -> Self {
         try JSONDecoder().decode(Self.self, from: data)

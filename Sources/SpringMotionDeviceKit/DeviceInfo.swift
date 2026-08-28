@@ -1,5 +1,5 @@
 #if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)
-import StudioDeviceWire
+import SpringMotionDeviceWire
 import UIKit
 
 /// Who and what this device is — the TXT record's contents, and the metadata
@@ -73,8 +73,8 @@ enum DeviceInfo {
                             + "without it iOS blocks the connection silently.")
         }
         let services = info["NSBonjourServices"] as? [String] ?? []
-        if !services.contains(StudioDeviceProtocol.serviceType) {
-            warnings.append("Add \(StudioDeviceProtocol.serviceType) to NSBonjourServices "
+        if !services.contains(SpringMotionProtocol.serviceType) {
+            warnings.append("Add \(SpringMotionProtocol.serviceType) to NSBonjourServices "
                             + "in Info.plist — without it the device cannot advertise.")
         }
         return warnings

@@ -2,7 +2,7 @@
 import AVFoundation
 import QuartzCore
 import ReplayKit
-import StudioDeviceWire
+import SpringMotionDeviceWire
 
 /// Records the host app's screen to a `.mov` via ReplayKit's in-process capture.
 ///

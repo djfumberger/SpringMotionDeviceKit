@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import StudioDeviceWire
+@testable import SpringMotionDeviceWire
 
 /// The framing is the one piece both ends implement against each other, so it
 /// carries the risk that a bug shows up as a hang on a device rather than a
@@ -15,21 +15,21 @@ import Testing
     @Test func roundTripsOneMessage() throws {
         let payload = Data("hello".utf8)
         var decoder = FrameDecoder()
-        let out = try decoder.feed(StudioDeviceFraming.frame(payload))
+        let out = try decoder.feed(SpringMotionFraming.frame(payload))
         #expect(out == [.message(payload)])
     }
 
     @Test func decodesTwoMessagesArrivingInOneRead() throws {
         let a = Data("first".utf8), b = Data("second".utf8)
         var decoder = FrameDecoder()
-        let merged = try StudioDeviceFraming.frame(a) + StudioDeviceFraming.frame(b)
+        let merged = try SpringMotionFraming.frame(a) + SpringMotionFraming.frame(b)
         #expect(try decoder.feed(merged) == [.message(a), .message(b)])
     }
 
     /// The case that breaks naive implementations: a header split across reads.
     @Test func decodesAMessageArrivingOneByteAtATime() throws {
         let payload = Data("a longer payload, several bytes past the header".utf8)
-        let framed = try StudioDeviceFraming.frame(payload)
+        let framed = try SpringMotionFraming.frame(payload)
         var decoder = FrameDecoder()
         var out: [FrameDecoder.Output] = []
         for byte in framed {
@@ -45,7 +45,7 @@ import Testing
         var out: [FrameDecoder.Output] = []
         let payloads = (0..<50).map { Data(String(repeating: "x", count: $0).utf8) }
         for payload in payloads {
-            out += try decoder.feed(StudioDeviceFraming.frame(payload))
+            out += try decoder.feed(SpringMotionFraming.frame(payload))
         }
         #expect(out == payloads.map { .message($0) })
     }
@@ -55,15 +55,15 @@ import Testing
         // 0x7FFFFFFF — a corrupt or hostile header that would otherwise become
         // a 2GB allocation on a device.
         let header = Data([0x7F, 0xFF, 0xFF, 0xFF])
-        #expect(throws: StudioDeviceFraming.FramingError.self) {
+        #expect(throws: SpringMotionFraming.FramingError.self) {
             _ = try decoder.feed(header)
         }
     }
 
     @Test func refusesToFrameAnOversizePayload() {
-        let huge = Data(count: StudioDeviceFraming.maximumMessageSize + 1)
-        #expect(throws: StudioDeviceFraming.FramingError.self) {
-            _ = try StudioDeviceFraming.frame(huge)
+        let huge = Data(count: SpringMotionFraming.maximumMessageSize + 1)
+        #expect(throws: SpringMotionFraming.FramingError.self) {
+            _ = try SpringMotionFraming.frame(huge)
         }
     }
 
@@ -74,7 +74,7 @@ import Testing
         let body = Data((0..<1000).map { UInt8($0 % 251) })
         var decoder = FrameDecoder()
 
-        let announced = try decoder.feed(StudioDeviceFraming.frame(announcement))
+        let announced = try decoder.feed(SpringMotionFraming.frame(announcement))
         #expect(announced == [.message(announcement)])
 
         decoder.expectRaw(bytes: body.count)
@@ -94,7 +94,7 @@ import Testing
         let next = Data("after".utf8)
         var decoder = FrameDecoder()
         decoder.expectRaw(bytes: body.count)
-        let out = try decoder.feed(body + StudioDeviceFraming.frame(next))
+        let out = try decoder.feed(body + SpringMotionFraming.frame(next))
         #expect(out == [.raw(body), .rawFinished, .message(next)])
     }
 }
@@ -110,9 +110,9 @@ import Testing
         let trailing = Data("after".utf8)
 
         var decoder = FrameDecoder()
-        decoder.append(try StudioDeviceFraming.frame(announcement)
+        decoder.append(try SpringMotionFraming.frame(announcement)
                        + body
-                       + StudioDeviceFraming.frame(trailing))
+                       + SpringMotionFraming.frame(trailing))
 
         // Pull one unit, act on it, THEN pull the next — the real read loop.
         let first = try decoder.next()

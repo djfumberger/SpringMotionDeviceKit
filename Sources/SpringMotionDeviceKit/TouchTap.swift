@@ -1,6 +1,6 @@
 #if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)
 import QuartzCore
-import StudioDeviceWire
+import SpringMotionDeviceWire
 import UIKit
 
 /// Watches every touch the host app receives and reassembles them into strokes.
@@ -44,9 +44,9 @@ final class TouchTap {
         guard let original = class_getInstanceMethod(UIWindow.self,
                                                      #selector(UIWindow.sendEvent(_:))),
               let replacement = class_getInstanceMethod(UIWindow.self,
-                                                        #selector(UIWindow.studioDeviceKit_sendEvent(_:)))
+                                                        #selector(UIWindow.springMotionDeviceKit_sendEvent(_:)))
         else {
-            assertionFailure("StudioDeviceKit: could not hook UIWindow.sendEvent")
+            assertionFailure("SpringMotionDeviceKit: could not hook UIWindow.sendEvent")
             return
         }
         method_exchangeImplementations(original, replacement)
@@ -195,14 +195,14 @@ extension UIWindow {
     /// The swizzled half. After `method_exchangeImplementations`, this selector
     /// holds the ORIGINAL implementation — so calling it here forwards the
     /// event on, it does not recurse.
-    @objc fileprivate dynamic func studioDeviceKit_sendEvent(_ event: UIEvent) {
+    @objc fileprivate dynamic func springMotionDeviceKit_sendEvent(_ event: UIEvent) {
         // Observe first: a touch that triggers a system gesture may never come
         // back through here, and losing the last sample of a swipe-to-dismiss is
         // exactly the sample that explains what happened.
         MainActor.assumeIsolated {
             TouchTap.shared.observe(event, in: self)
         }
-        studioDeviceKit_sendEvent(event)
+        springMotionDeviceKit_sendEvent(event)
     }
 }
 #endif

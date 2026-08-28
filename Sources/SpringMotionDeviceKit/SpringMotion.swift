@@ -2,16 +2,16 @@
 import Foundation
 import SwiftUI
 #if DEBUG || STUDIO_DEVICE_CAPTURE
-import StudioDeviceWire
+import SpringMotionDeviceWire
 #endif
 
 /// Thrown by the release-build stubs. The SDK's public surface stays present in
 /// every configuration so host code compiles unchanged — but the machinery
 /// behind it does not.
-public struct StudioDeviceUnavailable: LocalizedError {
+public struct SpringMotionUnavailable: LocalizedError {
     public init() {}
     public var errorDescription: String? {
-        "StudioDeviceKit is not compiled into this build."
+        "SpringMotionDeviceKit is not compiled into this build."
     }
 }
 
@@ -20,12 +20,12 @@ public struct StudioDeviceUnavailable: LocalizedError {
 /// ```swift
 /// // UIKit
 /// func application(_: UIApplication, didFinishLaunchingWithOptions _: …) -> Bool {
-///     StudioDevice.enable()
+///     SpringMotion.enable()
 ///     return true
 /// }
 ///
 /// // SwiftUI
-/// WindowGroup { ContentView().studioCapture() }
+/// WindowGroup { ContentView().springMotionCapture() }
 /// ```
 ///
 /// This API is present in every configuration so host code compiles unchanged.
@@ -40,7 +40,7 @@ public struct StudioDeviceUnavailable: LocalizedError {
 /// service type still sits in the binary's strings. Verified by inspecting a
 /// release build — see DEVICEKIT.md §3.1.)
 @MainActor
-public enum StudioDevice {
+public enum SpringMotion {
     /// True when the SDK is compiled in. Read it to gate your own debug UI.
     public static var isEnabled: Bool { isCompiledIn }
 
@@ -82,7 +82,7 @@ public enum StudioDevice {
             }
 
         for warning in DeviceInfo.configurationWarnings {
-            print("[StudioDeviceKit] \(warning)")
+            print("[SpringMotionDeviceKit] \(warning)")
         }
     }
 
@@ -120,15 +120,15 @@ public enum StudioDevice {
     public static func startRecording() async throws -> String {
         guard isCompiledIn else { return "" }
         enable()
-        guard let recorder else { throw StudioDeviceResponse.Failure(
-            .internalError, "StudioDevice is not enabled.") }
+        guard let recorder else { throw SpringMotionResponse.Failure(
+            .internalError, "SpringMotion is not enabled.") }
         return try await recorder.start(options: .init())
     }
 
     @discardableResult
     public static func stopRecording() async throws -> TakeHandle {
         guard isCompiledIn, let recorder else {
-            throw StudioDeviceResponse.Failure(.notRecording, "No recording is running.")
+            throw SpringMotionResponse.Failure(.notRecording, "No recording is running.")
         }
         let summary = try await recorder.stop()
         return TakeHandle(id: summary.id,
@@ -171,12 +171,12 @@ public enum StudioDevice {
 
     @discardableResult
     public static func startRecording() async throws -> String {
-        throw StudioDeviceUnavailable()
+        throw SpringMotionUnavailable()
     }
 
     @discardableResult
     public static func stopRecording() async throws -> TakeHandle {
-        throw StudioDeviceUnavailable()
+        throw SpringMotionUnavailable()
     }
 
     public static var pendingTakes: [TakeHandle] { [] }
@@ -199,10 +199,10 @@ public enum StudioDevice {
 }
 
 public extension View {
-    /// SwiftUI install point. Equivalent to calling `StudioDevice.enable()`.
+    /// SwiftUI install point. Equivalent to calling `SpringMotion.enable()`.
     /// A no-op in release builds — `enable()` is the stub there.
-    func studioCapture() -> some View {
-        task { StudioDevice.enable() }
+    func springMotionCapture() -> some View {
+        task { SpringMotion.enable() }
     }
 }
 #endif

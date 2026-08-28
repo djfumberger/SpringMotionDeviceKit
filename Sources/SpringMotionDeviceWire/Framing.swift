@@ -4,14 +4,14 @@ import Foundation
 ///
 /// The wire is `[4-byte big-endian length][payload]`, repeated. Payloads are
 /// JSON except for blob bodies, which follow their announcing message as raw
-/// bytes (see `StudioDeviceResponse.blob`).
+/// bytes (see `SpringMotionResponse.blob`).
 ///
 /// This exists instead of HTTP because both ends are ours and both speak
 /// Network.framework: a framed read is a dozen lines each side, whereas HTTP
 /// means writing a request parser for iOS and a response parser for macOS, with
 /// chunked-encoding and header-folding corner cases nobody wants to own. The
 /// cost is that `curl` can't poke at it — accepted (DEVICEKIT.md §5.2).
-public enum StudioDeviceFraming {
+public enum SpringMotionFraming {
     /// The header size in bytes.
     public static let headerSize = 4
 
@@ -118,18 +118,18 @@ public struct FrameDecoder: Sendable {
             return .rawFinished
         }
 
-        guard buffer.count >= StudioDeviceFraming.headerSize else { return nil }
+        guard buffer.count >= SpringMotionFraming.headerSize else { return nil }
         // `buffer` has had bytes removed from the front, so its indices are NOT
         // zero-based — read through a re-based copy rather than subscripting
         // with literals, which is the classic Data foot-gun.
-        let header = [UInt8](buffer.prefix(StudioDeviceFraming.headerSize))
+        let header = [UInt8](buffer.prefix(SpringMotionFraming.headerSize))
         let length = Int(UInt32(header[0]) << 24 | UInt32(header[1]) << 16
                          | UInt32(header[2]) << 8 | UInt32(header[3]))
-        guard length <= StudioDeviceFraming.maximumMessageSize else {
-            throw StudioDeviceFraming.FramingError.messageTooLarge(length)
+        guard length <= SpringMotionFraming.maximumMessageSize else {
+            throw SpringMotionFraming.FramingError.messageTooLarge(length)
         }
-        guard buffer.count >= StudioDeviceFraming.headerSize + length else { return nil }
-        buffer.removeFirst(StudioDeviceFraming.headerSize)
+        guard buffer.count >= SpringMotionFraming.headerSize + length else { return nil }
+        buffer.removeFirst(SpringMotionFraming.headerSize)
         let payload = buffer.prefix(length)
         buffer.removeFirst(length)
         return .message(payload)

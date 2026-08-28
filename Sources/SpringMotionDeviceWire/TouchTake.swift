@@ -147,12 +147,12 @@ public struct TouchTake: Codable, Equatable, Sendable {
         public var systemVersion: String = ""   // "26.2"
         public var appBundleID: String = ""
         public var appVersion: String = ""
-        public var sdkVersion: String = StudioDeviceProtocol.version
+        public var sdkVersion: String = SpringMotionProtocol.version
 
         public init(name: String = "", machine: String = "",
                     systemVersion: String = "", appBundleID: String = "",
                     appVersion: String = "",
-                    sdkVersion: String = StudioDeviceProtocol.version) {
+                    sdkVersion: String = SpringMotionProtocol.version) {
             self.name = name; self.machine = machine
             self.systemVersion = systemVersion
             self.appBundleID = appBundleID; self.appVersion = appVersion

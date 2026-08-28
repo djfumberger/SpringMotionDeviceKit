@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import StudioDeviceWire
+@testable import SpringMotionDeviceWire
 
 @Suite struct TouchTakeTests {
     private func stroke(_ id: Int, from: TimeInterval, to: TimeInterval,

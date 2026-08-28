@@ -1,13 +1,13 @@
 #if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)
 import Foundation
 import Network
-import StudioDeviceWire
+import SpringMotionDeviceWire
 import UIKit
 
 /// Advertises the device over Bonjour and serves the control protocol.
 ///
 /// One `NWListener` does both jobs: it takes the TCP connections and it
-/// publishes the `_promostudio._tcp` service Studio browses for. The TXT record
+/// publishes the `_springmotion._tcp` service Studio browses for. The TXT record
 /// carries enough for Studio to draw a useful device list — name, hardware
 /// identifier, screen metrics — without connecting first.
 @MainActor
@@ -42,7 +42,7 @@ final class ControlServer {
             // there is no fixed port to collide with anything.
             let listener = try NWListener(using: parameters)
             listener.service = NWListener.Service(
-                type: StudioDeviceProtocol.serviceType,
+                type: SpringMotionProtocol.serviceType,
                 txtRecord: txtRecord().data)
             listener.stateUpdateHandler = { [weak self] state in
                 Task { @MainActor in self?.handle(state) }
@@ -55,7 +55,7 @@ final class ControlServer {
             isRunning = true
         } catch {
             lastError = error.localizedDescription
-            print("[StudioDeviceKit] could not start listener: \(error.localizedDescription)")
+            print("[SpringMotionDeviceKit] could not start listener: \(error.localizedDescription)")
         }
     }
 
@@ -72,20 +72,20 @@ final class ControlServer {
     /// landscape take landing in a portrait bezel.
     func refreshAdvertisement() {
         listener?.service = NWListener.Service(
-            type: StudioDeviceProtocol.serviceType,
+            type: SpringMotionProtocol.serviceType,
             txtRecord: txtRecord().data)
     }
 
     private func txtRecord() -> NWTXTRecord {
         let screen = DeviceInfo.screen
         var txt = NWTXTRecord()
-        txt[StudioDeviceProtocol.TXT.deviceName] = UIDevice.current.name
-        txt[StudioDeviceProtocol.TXT.machine] = DeviceInfo.machine
-        txt[StudioDeviceProtocol.TXT.widthPoints] = String(Int(screen.width))
-        txt[StudioDeviceProtocol.TXT.heightPoints] = String(Int(screen.height))
-        txt[StudioDeviceProtocol.TXT.scale] = String(format: "%.1f", screen.scale)
-        txt[StudioDeviceProtocol.TXT.bundleID] = Bundle.main.bundleIdentifier ?? ""
-        txt[StudioDeviceProtocol.TXT.version] = StudioDeviceProtocol.version
+        txt[SpringMotionProtocol.TXT.deviceName] = UIDevice.current.name
+        txt[SpringMotionProtocol.TXT.machine] = DeviceInfo.machine
+        txt[SpringMotionProtocol.TXT.widthPoints] = String(Int(screen.width))
+        txt[SpringMotionProtocol.TXT.heightPoints] = String(Int(screen.height))
+        txt[SpringMotionProtocol.TXT.scale] = String(format: "%.1f", screen.scale)
+        txt[SpringMotionProtocol.TXT.bundleID] = Bundle.main.bundleIdentifier ?? ""
+        txt[SpringMotionProtocol.TXT.version] = SpringMotionProtocol.version
         return txt
     }
 
@@ -96,7 +96,7 @@ final class ControlServer {
             // The overwhelmingly likely cause is a missing Info.plist key, and
             // the system's own error says nothing about that — so say it here.
             print("""
-                [StudioDeviceKit] listener failed: \(error.localizedDescription)
+                [SpringMotionDeviceKit] listener failed: \(error.localizedDescription)
                 \(DeviceInfo.configurationWarnings.joined(separator: "\n"))
                 """)
             isRunning = false
@@ -204,9 +204,9 @@ final class PeerConnection {
     }
 
     private func handle(_ payload: Data) async {
-        let request: StudioDeviceRequest
+        let request: SpringMotionRequest
         do {
-            request = try StudioDeviceRequest.decode(payload)
+            request = try SpringMotionRequest.decode(payload)
         } catch {
             await respond(.failure(.init(.internalError,
                                          "Unreadable request: \(error.localizedDescription)")))
@@ -219,7 +219,7 @@ final class PeerConnection {
             if let response = try await perform(request) {
                 await respond(response)
             }
-        } catch let failure as StudioDeviceResponse.Failure {
+        } catch let failure as SpringMotionResponse.Failure {
             await respond(.failure(failure))
         } catch {
             await respond(.failure(.init(.internalError, error.localizedDescription)))
@@ -228,7 +228,7 @@ final class PeerConnection {
 
     /// Returns the response to send, or nil when the request answered itself
     /// (a blob fetch streams its own header and body).
-    private func perform(_ request: StudioDeviceRequest) async throws -> StudioDeviceResponse? {
+    private func perform(_ request: SpringMotionRequest) async throws -> SpringMotionResponse? {
         switch request {
         case .hello(let token, _):
             if pairing.isTrusted(token) {
@@ -254,7 +254,7 @@ final class PeerConnection {
         case .fetchTake(let id, let part):
             try requireTrust()
             guard store.exists(id) else {
-                throw StudioDeviceResponse.Failure(.unknownTake,
+                throw SpringMotionResponse.Failure(.unknownTake,
                                                    "No take with id \(id) on this device.")
             }
             switch part {
@@ -277,13 +277,13 @@ final class PeerConnection {
 
     private func requireTrust() throws {
         guard isTrusted else {
-            throw StudioDeviceResponse.Failure(
+            throw SpringMotionResponse.Failure(
                 .notPaired, "This Mac is not paired with the device yet.")
         }
     }
 
-    private func helloInfo() -> StudioDeviceResponse.HelloInfo {
-        StudioDeviceResponse.HelloInfo(
+    private func helloInfo() -> SpringMotionResponse.HelloInfo {
+        SpringMotionResponse.HelloInfo(
             device: DeviceInfo.identity,
             screen: DeviceInfo.screen,
             isRecording: recorder.isRecording,
@@ -293,9 +293,9 @@ final class PeerConnection {
 
     // MARK: Writing
 
-    private func respond(_ response: StudioDeviceResponse) async {
+    private func respond(_ response: SpringMotionResponse) async {
         do {
-            try await send(StudioDeviceFraming.frame(response.encoded()))
+            try await send(SpringMotionFraming.frame(response.encoded()))
         } catch {
             close()
         }
@@ -310,14 +310,14 @@ final class PeerConnection {
         let url = store.videoURL(for: id)
         let bytes = store.videoBytes(for: id)
         guard bytes > 0, let handle = try? FileHandle(forReadingFrom: url) else {
-            throw StudioDeviceResponse.Failure(.unknownTake,
+            throw SpringMotionResponse.Failure(.unknownTake,
                                                "The take's video is missing or empty.")
         }
         defer { try? handle.close() }
 
-        let header = StudioDeviceResponse.blob(.init(part: .video, bytes: bytes,
+        let header = SpringMotionResponse.blob(.init(part: .video, bytes: bytes,
                                                      contentType: "video/quicktime"))
-        try await send(StudioDeviceFraming.frame(header.encoded()))
+        try await send(SpringMotionFraming.frame(header.encoded()))
 
         while let chunk = try handle.read(upToCount: 256 * 1024), !chunk.isEmpty {
             // Raw, unframed: the announcement already said exactly how many
