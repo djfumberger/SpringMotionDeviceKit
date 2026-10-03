@@ -26,19 +26,48 @@ public struct TouchTake: Codable, Equatable, Sendable {
     public var screen: Screen = Screen()
     public var device: DeviceIdentity = DeviceIdentity()
     public var video: VideoAnchor = VideoAnchor()
+    /// How far open a foldable was, over the take — nil on a device without a
+    /// hinge (or an SDK/OS too old to read one). Optional and additive, so an
+    /// older Studio decodes a newer take by ignoring it: no format bump.
+    public var hinge: [HingeSample]?
 
     public init(version: Int = TouchTake.formatVersion,
                 strokes: [Stroke] = [],
                 duration: TimeInterval = 0,
                 screen: Screen = Screen(),
                 device: DeviceIdentity = DeviceIdentity(),
-                video: VideoAnchor = VideoAnchor()) {
+                video: VideoAnchor = VideoAnchor(),
+                hinge: [HingeSample]? = nil) {
         self.version = version
         self.strokes = strokes
         self.duration = duration
         self.screen = screen
         self.device = device
         self.video = video
+        self.hinge = hinge
+    }
+
+    /// One reading of a foldable's hinge (`UIHinge`, iOS 27.1), `t` seconds
+    /// after the first video frame — the same clock as the touches.
+    ///
+    /// Kept as the system reported it. Readings arrive at whatever rate the
+    /// system chooses, and the angle's zero/flat convention is the system's
+    /// too, so Studio calibrates from `status` (closed / fully open) rather
+    /// than the device assuming what an angle means.
+    public struct HingeSample: Codable, Equatable, Sendable {
+        public var t: TimeInterval
+        /// `UIHinge.angle`, radians.
+        public var angle: Float
+        public var status: HingeStatus
+
+        public init(t: TimeInterval, angle: Float, status: HingeStatus) {
+            self.t = t; self.angle = angle; self.status = status
+        }
+    }
+
+    /// `UIHinge.Status`.
+    public enum HingeStatus: String, Codable, Equatable, Sendable {
+        case unknown, closed, partiallyOpen, fullyOpen
     }
 
     /// One position of one finger, `t` seconds after the first video frame.

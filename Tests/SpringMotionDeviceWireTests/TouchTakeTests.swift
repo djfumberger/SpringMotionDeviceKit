@@ -84,4 +84,27 @@ import Testing
         let screen = SIMD2<Float>(393, 852)
         #expect(!stroke(0, from: 0, to: 2).isTap(screenSize: screen))
     }
+
+    // MARK: Hinge — additive, so both directions of version skew must hold.
+
+    @Test func hingeSamplesSurviveARoundTrip() throws {
+        var take = TouchTake()
+        take.hinge = [
+            .init(t: 0, angle: 0, status: .closed),
+            .init(t: 1.2, angle: 1.4, status: .partiallyOpen),
+            .init(t: 2.5, angle: 3.1, status: .fullyOpen),
+        ]
+        let decoded = try JSONDecoder().decode(TouchTake.self, from: JSONEncoder().encode(take))
+        #expect(decoded == take)
+    }
+
+    @Test func aTakeWithoutAHingeStillDecodes() throws {
+        // What a 0.1 SDK sends: no `hinge` key at all.
+        let old = try JSONEncoder().encode(TouchTake())
+        var object = try #require(JSONSerialization.jsonObject(with: old) as? [String: Any])
+        object.removeValue(forKey: "hinge")
+        let decoded = try JSONDecoder().decode(
+            TouchTake.self, from: JSONSerialization.data(withJSONObject: object))
+        #expect(decoded.hinge == nil)
+    }
 }

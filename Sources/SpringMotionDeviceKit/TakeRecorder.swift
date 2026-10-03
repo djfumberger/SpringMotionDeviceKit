@@ -45,6 +45,7 @@ final class TakeRecorder {
         // negative time.
         let bounds = DeviceInfo.activeScreen?.coordinateSpace.bounds ?? .zero
         TouchTap.shared.startRecording(referenceBounds: bounds)
+        HingeTap.shared.startRecording()
 
         self.capture = capture
         self.takeID = id
@@ -77,6 +78,7 @@ final class TakeRecorder {
             anchor = try await capture.stop()
         } catch {
             _ = TouchTap.shared.finishRecording(videoStart: 0)
+            _ = HingeTap.shared.finishRecording(videoStart: 0)
             store.delete(id)
             self.capture = nil
             self.takeID = nil
@@ -84,6 +86,7 @@ final class TakeRecorder {
         }
 
         let strokes = TouchTap.shared.finishRecording(videoStart: anchor.firstFramePTS)
+        let hinge = HingeTap.shared.finishRecording(videoStart: anchor.firstFramePTS)
         var screen = DeviceInfo.screen
         // Pixel size comes from the frames themselves, not from points × scale
         // — ReplayKit does not promise they match.
@@ -96,7 +99,8 @@ final class TakeRecorder {
             duration: capture.duration,
             screen: screen,
             device: DeviceInfo.identity,
-            video: anchor)
+            video: anchor,
+            hinge: hinge)
         try store.write(take, for: id)
 
         self.capture = nil
