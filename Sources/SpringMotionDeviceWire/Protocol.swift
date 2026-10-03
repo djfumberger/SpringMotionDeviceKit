@@ -92,18 +92,25 @@ public enum SpringMotionResponse: Codable, Sendable {
         /// Set when the host app is missing a required Info.plist key. The
         /// developer sees a specific instruction instead of a silent no-show.
         public var configurationWarnings: [String]
+        /// Set when the app is running in the iOS Simulator: which simulator.
+        /// ReplayKit delivers no frames there, so the device records only its
+        /// logs (`TakeSummary.hasVideo` false) and Studio films that simulator
+        /// itself, lining the two up on the clock they share — the Mac's.
+        public var simulatorUDID: String?
 
         public init(device: TouchTake.DeviceIdentity, screen: TouchTake.Screen,
                     protocolVersion: String = SpringMotionProtocol.version,
                     isRecording: Bool = false,
                     pendingTakeIDs: [String] = [],
-                    configurationWarnings: [String] = []) {
+                    configurationWarnings: [String] = [],
+                    simulatorUDID: String? = nil) {
             self.device = device
             self.screen = screen
             self.protocolVersion = protocolVersion
             self.isRecording = isRecording
             self.pendingTakeIDs = pendingTakeIDs
             self.configurationWarnings = configurationWarnings
+            self.simulatorUDID = simulatorUDID
         }
     }
 
@@ -119,16 +126,20 @@ public enum SpringMotionResponse: Codable, Sendable {
         /// was silent" from "audio capture failed", which look identical once
         /// the take is on the Mac and only one of them is worth re-shooting.
         public var hasAudio: Bool
+        /// False for a logs-only take (the Simulator): there is no `.video` part
+        /// to fetch. Absent (an older SDK) means a video was recorded.
+        public var hasVideo: Bool?
 
         public init(id: String, duration: TimeInterval, videoBytes: Int,
                     strokeCount: Int, maximumConcurrentStrokes: Int,
-                    hasAudio: Bool = false) {
+                    hasAudio: Bool = false, hasVideo: Bool? = nil) {
             self.id = id
             self.duration = duration
             self.videoBytes = videoBytes
             self.strokeCount = strokeCount
             self.maximumConcurrentStrokes = maximumConcurrentStrokes
             self.hasAudio = hasAudio
+            self.hasVideo = hasVideo
         }
     }
 

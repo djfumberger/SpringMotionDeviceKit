@@ -28,6 +28,15 @@ enum DeviceInfo {
             appVersion: (bundle.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "")
     }
 
+    /// Which simulator this is, when running in one — nil on a real device.
+    static var simulatorUDID: String? {
+        #if targetEnvironment(simulator)
+        ProcessInfo.processInfo.environment["SIMULATOR_UDID"]
+        #else
+        nil
+        #endif
+    }
+
     /// The active scene's screen, in its CURRENT orientation — ReplayKit's
     /// frames are interface-oriented too, so the log and the video agree.
     static var activeScreen: UIScreen? {

@@ -288,7 +288,8 @@ final class PeerConnection {
             screen: DeviceInfo.screen,
             isRecording: recorder.isRecording,
             pendingTakeIDs: store.pendingIDs,
-            configurationWarnings: DeviceInfo.configurationWarnings)
+            configurationWarnings: DeviceInfo.configurationWarnings,
+            simulatorUDID: DeviceInfo.simulatorUDID)
     }
 
     // MARK: Writing

@@ -107,4 +107,21 @@ import Testing
             TouchTake.self, from: JSONSerialization.data(withJSONObject: object))
         #expect(decoded.hinge == nil)
     }
+
+    @Test func simulatorFieldsAreOptionalBothWays() throws {
+        // An older SDK's hello and summary — no simulatorUDID / hasVideo — decode.
+        let hello = SpringMotionResponse.HelloInfo(device: .init(), screen: .init())
+        var object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(hello)) as? [String: Any])
+        object.removeValue(forKey: "simulatorUDID")
+        let decodedHello = try JSONDecoder().decode(
+            SpringMotionResponse.HelloInfo.self, from: JSONSerialization.data(withJSONObject: object))
+        #expect(decodedHello.simulatorUDID == nil)
+
+        let summary = SpringMotionResponse.TakeSummary(id: "t", duration: 1, videoBytes: 0,
+                                                       strokeCount: 0, maximumConcurrentStrokes: 0,
+                                                       hasVideo: false)
+        let decoded = try JSONDecoder().decode(SpringMotionResponse.TakeSummary.self,
+                                               from: JSONEncoder().encode(summary))
+        #expect(decoded.hasVideo == false)
+    }
 }

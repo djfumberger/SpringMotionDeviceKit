@@ -1,5 +1,6 @@
 #if os(iOS) && (DEBUG || STUDIO_DEVICE_CAPTURE)
 import Foundation
+import QuartzCore
 import SpringMotionDeviceWire
 import UIKit
 
@@ -15,7 +16,22 @@ import UIKit
 final class TakeRecorder {
     private let store: TakeStore
     private var capture: ScreenCapture?
+    /// A logs-only take (the Simulator): when it began, on the host clock — the
+    /// anchor its times are rebased against, in place of a first video frame.
+    private var logsOnlyStart: TimeInterval?
     private var takeID: String?
+
+    /// ReplayKit's in-app capture starts "successfully" in the Simulator and
+    /// then never delivers a frame. So there, a take is the logs alone, and
+    /// Studio films the simulator itself (it shares this process's clock: a
+    /// simulated app runs on the Mac).
+    private static var recordsLogsOnly: Bool {
+        #if targetEnvironment(simulator)
+        true
+        #else
+        false
+        #endif
+    }
     /// Auto-stop, so a take nobody stopped can't fill the device.
     private var deadline: Task<Void, Never>?
 
@@ -31,14 +47,20 @@ final class TakeRecorder {
                                                "This device is already recording.")
         }
         let id = try store.createTake()
-        let capture = ScreenCapture(outputURL: store.videoURL(for: id),
-                                    includeAppAudio: options.includeAppAudio)
-        do {
-            try await capture.start()
-        } catch {
-            capture.abandon()
-            store.delete(id)
-            throw Self.failure(from: error)
+        var capture: ScreenCapture?
+        if Self.recordsLogsOnly {
+            logsOnlyStart = CACurrentMediaTime()
+        } else {
+            let screen = ScreenCapture(outputURL: store.videoURL(for: id),
+                                       includeAppAudio: options.includeAppAudio)
+            do {
+                try await screen.start()
+            } catch {
+                screen.abandon()
+                store.delete(id)
+                throw Self.failure(from: error)
+            }
+            capture = screen
         }
         // The tap starts AFTER capture is running: a touch logged before the
         // first frame exists has no video to sit against and would rebase to a
@@ -65,13 +87,20 @@ final class TakeRecorder {
     }
 
     func stop() async throws -> SpringMotionResponse.TakeSummary {
-        guard isRecording, let capture, let id = takeID else {
+        guard isRecording, let id = takeID else {
             throw SpringMotionResponse.Failure(.notRecording, "No recording is running.")
         }
         isRecording = false
         deadline?.cancel()
         deadline = nil
         UIApplication.shared.isIdleTimerDisabled = false
+
+        if let start = logsOnlyStart {
+            return try finishLogsOnly(id: id, start: start)
+        }
+        guard let capture else {
+            throw SpringMotionResponse.Failure(.notRecording, "No recording is running.")
+        }
 
         let anchor: TouchTake.VideoAnchor
         do {
@@ -112,7 +141,35 @@ final class TakeRecorder {
             videoBytes: store.videoBytes(for: id),
             strokeCount: take.strokes.count,
             maximumConcurrentStrokes: take.maximumConcurrentStrokes,
-            hasAudio: capture.wroteAudio)
+            hasAudio: capture.wroteAudio,
+            hasVideo: true)
+    }
+
+    /// End a logs-only take: the touches and hinge, rebased so the take's start
+    /// is t = 0, with that start (host clock) recorded as the anchor — Studio
+    /// shifts the logs by it to meet the video it filmed.
+    private func finishLogsOnly(id: String, start: TimeInterval) throws -> SpringMotionResponse.TakeSummary {
+        logsOnlyStart = nil
+        let strokes = TouchTap.shared.finishRecording(videoStart: start)
+        let hinge = HingeTap.shared.finishRecording(videoStart: start)
+        let take = TouchTake(
+            strokes: strokes,
+            duration: CACurrentMediaTime() - start,
+            screen: DeviceInfo.screen,
+            device: DeviceInfo.identity,
+            video: TouchTake.VideoAnchor(firstFramePTS: start, firstFrameArrival: start,
+                                         rebasedAgainst: "takeStart"),
+            hinge: hinge)
+        try store.write(take, for: id)
+        takeID = nil
+        return SpringMotionResponse.TakeSummary(
+            id: id,
+            duration: take.duration,
+            videoBytes: 0,
+            strokeCount: take.strokes.count,
+            maximumConcurrentStrokes: take.maximumConcurrentStrokes,
+            hasAudio: false,
+            hasVideo: false)
     }
 
     /// Map capture errors onto wire failures, keeping the distinction between
