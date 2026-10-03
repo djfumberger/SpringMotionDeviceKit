@@ -10,6 +10,13 @@ enum DeviceInfo {
     /// marketing name here: Studio owns that table, so it can learn new devices
     /// without every host app shipping a new SDK build.
     static var machine: String {
+        // In the Simulator `uname` is the Mac's CPU ("arm64"); the simulated
+        // model's identifier is in the environment instead.
+        #if targetEnvironment(simulator)
+        if let model = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"], !model.isEmpty {
+            return model
+        }
+        #endif
         var systemInfo = utsname()
         uname(&systemInfo)
         return withUnsafeBytes(of: &systemInfo.machine) { raw in
